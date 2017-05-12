@@ -35,25 +35,25 @@ import org.jetbrains.kotlin.idea.util.application.executeCommand
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.kotlin.utils.ifEmpty
 
-class CopyKotlinClassesHandler : CopyHandlerDelegateBase() {
+class CopyKotlinDeclarationsHandler : CopyHandlerDelegateBase() {
     companion object {
-        private fun PsiElement.getTopLevelClasses(): List<KtClassOrObject> {
-            val classOrFile = parentsWithSelf.firstOrNull { it is KtFile || (it is KtClassOrObject && it.isTopLevel()) }
-            return when (classOrFile) {
-                is KtFile -> classOrFile.declarations.filterIsInstance<KtClassOrObject>()
-                is KtClassOrObject -> listOf(classOrFile)
+        private fun PsiElement.getTopLevelDeclarations(): List<KtNamedDeclaration> {
+            val declarationOrFile = parentsWithSelf.firstOrNull { it is KtFile || (it is KtNamedDeclaration && it.parent is KtFile) }
+            return when (declarationOrFile) {
+                is KtFile -> declarationOrFile.declarations.filterIsInstance<KtNamedDeclaration>()
+                is KtNamedDeclaration -> listOf(declarationOrFile)
                 else -> emptyList()
             }
         }
     }
 
     override fun canCopy(elements: Array<out PsiElement>, fromUpdate: Boolean): Boolean {
-        return elements.flatMap { it.getTopLevelClasses().ifEmpty { return false } }.distinctBy { it.containingFile }.size == 1
+        return elements.flatMap { it.getTopLevelDeclarations().ifEmpty { return false } }.distinctBy { it.containingFile }.size == 1
     }
 
     enum class ExistingFilePolicy {
@@ -124,32 +124,32 @@ class CopyKotlinClassesHandler : CopyHandlerDelegateBase() {
     }
 
     override fun doCopy(elements: Array<out PsiElement>, defaultTargetDirectory: PsiDirectory?) {
-        val classesToCopy = elements.flatMap { it.getTopLevelClasses() }
-        if (classesToCopy.isEmpty()) return
+        val declarationsToCopy = elements.flatMap { it.getTopLevelDeclarations() }
+        if (declarationsToCopy.isEmpty()) return
 
-        val singleClassToCopy = classesToCopy.singleOrNull()
+        val singleDeclarationToCopy = declarationsToCopy.singleOrNull()
 
-        val originalFile = classesToCopy.first().containingKtFile
+        val originalFile = declarationsToCopy.first().containingKtFile
         val initialTargetDirectory = defaultTargetDirectory ?: originalFile.containingDirectory ?: return
 
         val project = initialTargetDirectory.project
 
         if (ProjectRootManager.getInstance(project).fileIndex.getSourceRootForFile(initialTargetDirectory.virtualFile) == null) return
 
-        val commandName = RefactoringBundle.message("copy.handler.copy.class")
+        val commandName = "Copy Declarations"
 
         var openInEditor = false
-        var newName: String? = singleClassToCopy?.name ?: originalFile.name
+        var newName: String? = singleDeclarationToCopy?.name ?: originalFile.name
         var targetDirWrapper: AutocreatingPsiDirectoryWrapper = initialTargetDirectory.toDirectoryWrapper()
 
         if (!ApplicationManager.getApplication().isUnitTestMode) {
-            if (singleClassToCopy != null) {
-                val dialog = CopyKotlinClassDialog(singleClassToCopy, defaultTargetDirectory, project, false)
+            if (singleDeclarationToCopy != null) {
+                val dialog = CopyKotlinDeclarationDialog(singleDeclarationToCopy, defaultTargetDirectory, project, false)
                 dialog.title = commandName
                 if (!dialog.showAndGet()) return
 
                 openInEditor = dialog.openInEditor
-                newName = dialog.className ?: singleClassToCopy.name
+                newName = dialog.newName ?: singleDeclarationToCopy.name
                 targetDirWrapper = dialog.targetDirectory?.toDirectoryWrapper() ?: return
             }
             else {
@@ -161,7 +161,7 @@ class CopyKotlinClassesHandler : CopyHandlerDelegateBase() {
             }
         }
 
-        if (singleClassToCopy != null && newName.isNullOrEmpty()) return
+        if (singleDeclarationToCopy != null && newName.isNullOrEmpty()) return
 
         val internalUsages = runReadAction {
             val targetPackageName = targetDirWrapper.getPackageName()
@@ -169,7 +169,7 @@ class CopyKotlinClassesHandler : CopyHandlerDelegateBase() {
                     ContainerInfo.Package(originalFile.packageFqName),
                     ContainerInfo.Package(FqName(targetPackageName))
             )
-            classesToCopy.flatMap { it.getInternalReferencesToUpdateOnPackageNameChange(changeInfo) }
+            declarationsToCopy.flatMap { it.getInternalReferencesToUpdateOnPackageNameChange(changeInfo) }
         }
         markInternalUsages(internalUsages)
 
@@ -183,11 +183,11 @@ class CopyKotlinClassesHandler : CopyHandlerDelegateBase() {
                 val targetFile = getOrCreateTargetFile(originalFile, targetDirectory, targetFileName, commandName) ?: return@executeCommand
 
                 runWriteAction {
-                    val newClasses = classesToCopy.map { targetFile.add(it.copy()) as KtClassOrObject }
-                    val oldToNewElementsMapping = classesToCopy.zip(newClasses).toMap<PsiElement, PsiElement>()
-                    singleClassToCopy?.setName(newName!!)
-                    for (newClass in newClasses) {
-                        restoredInternalUsages += restoreInternalUsages(newClass, oldToNewElementsMapping, true)
+                    val newDeclarations = declarationsToCopy.map { targetFile.add(it.copy()) as KtNamedDeclaration }
+                    val oldToNewElementsMapping = declarationsToCopy.zip(newDeclarations).toMap<PsiElement, PsiElement>()
+                    singleDeclarationToCopy?.setName(newName!!)
+                    for (newDeclaration in newDeclarations) {
+                        restoredInternalUsages += restoreInternalUsages(newDeclaration, oldToNewElementsMapping, true)
                         postProcessMoveUsages(restoredInternalUsages, oldToNewElementsMapping)
                     }
                 }
