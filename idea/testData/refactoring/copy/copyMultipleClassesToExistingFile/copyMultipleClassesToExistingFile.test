@@ -1,0 +1,5 @@
+{
+  "mainFile": "foo/test.kt",
+  "type": "COPY_CLASS",
+  "targetPackage": "bar"
+}

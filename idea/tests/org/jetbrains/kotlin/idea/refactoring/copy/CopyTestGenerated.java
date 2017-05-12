@@ -54,6 +54,24 @@ public class CopyTestGenerated extends AbstractCopyTest {
         doTest(fileName);
     }
 
+    @TestMetadata("copyMultiClassFile/copyMultiClassFile.test")
+    public void testCopyMultiClassFile_CopyMultiClassFile() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/copy/copyMultiClassFile/copyMultiClassFile.test");
+        doTest(fileName);
+    }
+
+    @TestMetadata("copyMultipleClassesToExistingFile/copyMultipleClassesToExistingFile.test")
+    public void testCopyMultipleClassesToExistingFile_CopyMultipleClassesToExistingFile() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/copy/copyMultipleClassesToExistingFile/copyMultipleClassesToExistingFile.test");
+        doTest(fileName);
+    }
+
+    @TestMetadata("copyMultipleClassesToNewFile/copyMultipleClassesToNewFile.test")
+    public void testCopyMultipleClassesToNewFile_CopyMultipleClassesToNewFile() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/copy/copyMultipleClassesToNewFile/copyMultipleClassesToNewFile.test");
+        doTest(fileName);
+    }
+
     @TestMetadata("copySingleClassFile/copySingleClassFile.test")
     public void testCopySingleClassFile_CopySingleClassFile() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("idea/testData/refactoring/copy/copySingleClassFile/copySingleClassFile.test");
