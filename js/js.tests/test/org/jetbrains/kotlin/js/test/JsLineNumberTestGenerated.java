@@ -96,6 +96,12 @@ public class JsLineNumberTestGenerated extends AbstractJsLineNumberTest {
         doTest(fileName);
     }
 
+    @TestMetadata("lambdaWithClosure.kt")
+    public void testLambdaWithClosure() throws Exception {
+        String fileName = KotlinTestUtils.navigationMetadata("js/js.translator/testData/lineNumbers/lambdaWithClosure.kt");
+        doTest(fileName);
+    }
+
     @TestMetadata("longLiteral.kt")
     public void testLongLiteral() throws Exception {
         String fileName = KotlinTestUtils.navigationMetadata("js/js.translator/testData/lineNumbers/longLiteral.kt");
